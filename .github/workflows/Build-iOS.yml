@@ -1,7 +1,7 @@
 name: Build MLC Chat iOS IPA
 
 on:
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
 
 jobs:
   build-ios:
@@ -18,7 +18,7 @@ jobs:
 
       - name: Build MLC Chat App (.app)
         run: |
-          cd ios
+          cd ios/MLCChat
           xcodebuild -project MLCChat.xcodeproj \
                      -scheme MLCChat \
                      -sdk iphoneos \
@@ -30,10 +30,10 @@ jobs:
 
       - name: Package unsigned IPA
         run: |
-          cd ios
+          cd ios/MLCChat
           mkdir -p Payload
           cp -r build/Build/Products/Release-iphoneos/MLCChat.app Payload/
-          zip -r MLCChat.ipa Payload/
+          zip -r ../MLCChat.ipa Payload/
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
