@@ -1,0 +1,42 @@
+name: Build MLC Chat iOS IPA
+
+on:
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  build-ios:
+    runs-on: macos-14 # macOS runner with modern Xcode pre-installed
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Build MLC Chat App (.app)
+        run: |
+          cd ios
+          xcodebuild -project MLCChat.xcodeproj \
+                     -scheme MLCChat \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -derivedDataPath build \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned IPA
+        run: |
+          cd ios
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/MLCChat.app Payload/
+          zip -r MLCChat.ipa Payload/
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MLCChat-Unsigned-IPA
+          path: ios/MLCChat.ipa
