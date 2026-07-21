@@ -34,19 +34,19 @@ jobs:
       - name: Select Xcode 15.4
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
-      # 5. Install build dependencies (from PyPI)
+      # 5. Install build dependencies & MLC LLM wheels
       - name: Install Dependencies
         run: |
-          brew install cmake git-lfs
-          pip install --upgrade pip
-          pip install --pre mlc-llm
+          brew install cmake git-lfs rust
+          python3 -m pip install --upgrade pip
+          python3 -m pip install --pre -U --find-links https://mlc.ai/wheels mlc-llm-nightly-cpu mlc-ai-nightly-cpu
 
       # 6. Run MLC Package step to generate static libraries
       - name: Package MLC LLM Runtime & Libraries
         run: |
           export MLC_LLM_SOURCE_DIR="${{ github.workspace }}"
           cd ios/MLCChat
-          mlc_llm package
+          python3 -m mlc_llm package
 
       # 7. Build iOS App (.app) without code signing
       - name: Build MLC Chat App (.app)
