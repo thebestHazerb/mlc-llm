@@ -34,12 +34,16 @@ jobs:
       - name: Select Xcode 15.4
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
-      # 5. Install build dependencies & MLC LLM wheels
+      # 5. Install build dependencies & matched TVM/MLC wheels
       - name: Install Dependencies
         run: |
           brew install cmake git-lfs rust
           python3 -m pip install --upgrade pip
-          python3 -m pip install --pre -U --find-links https://mlc.ai/wheels mlc-llm-nightly-cpu mlc-ai-nightly-cpu
+          python3 -m pip install --no-cache-dir --pre -U \
+            --find-links https://mlc.ai/wheels \
+            tvm-ffi-nightly-cpu \
+            mlc-ai-nightly-cpu \
+            mlc-llm-nightly-cpu
 
       # 6. Run MLC Package step to generate static libraries
       - name: Package MLC LLM Runtime & Libraries
