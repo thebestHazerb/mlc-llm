@@ -1,42 +1,78 @@
-name: Build MLC Chat iOS IPA
+name: Build iOS App
 
 on:
-  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build-ios:
-    runs-on: macos-14 # macOS runner with modern Xcode pre-installed
+    runs-on: macos-14  # Apple Silicon runner required for Xcode 15/16
 
     steps:
+      # 1. Checkout repository with all submodules
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Select Xcode version
+      # 2. Set up Node.js 24
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # 3. Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # 4. Select Xcode version
+      - name: Select Xcode 15.4
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
+      # 5. Install build dependencies
+      - name: Install Dependencies
+        run: |
+          brew install cmake git-lfs
+          pip install --pre --extra-index-url https://packages.mlc.ai/wheels mlc-llm-nightly mlc-ai-nightly
+
+      # 6. Run MLC Package step to generate static libraries
+      - name: Package MLC LLM Runtime & Libraries
+        run: |
+          export MLC_LLM_SOURCE_DIR="${{ github.workspace }}"
+          cd ios/MLCChat
+          mlc_llm package
+
+      # 7. Build iOS App (.app) without code signing
       - name: Build MLC Chat App (.app)
         run: |
           cd ios/MLCChat
-          xcodebuild -project MLCChat.xcodeproj \
-                     -scheme MLCChat \
-                     -sdk iphoneos \
-                     -configuration Release \
-                     -derivedDataPath build \
-                     CODE_SIGN_IDENTITY="" \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGNING_ALLOWED=NO
+          xcodebuild build \
+            -project MLCChat.xcodeproj \
+            -scheme MLCChat \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
-      - name: Package unsigned IPA
+      # 8. Package .app into an Unsigned .ipa
+      - name: Package Unsigned .ipa
         run: |
           cd ios/MLCChat
           mkdir -p Payload
           cp -r build/Build/Products/Release-iphoneos/MLCChat.app Payload/
-          zip -r ../MLCChat.ipa Payload/
+          zip -r MLCChat-unsigned.ipa Payload
+          rm -rf Payload
 
-      - name: Upload IPA Artifact
+      # 9. Upload .ipa Artifact to GitHub
+      - name: Upload Unsigned IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MLCChat-Unsigned-IPA
-          path: ios/MLCChat.ipa
+          name: MLCChat-unsigned-ipa
+          path: ios/MLCChat/MLCChat-unsigned.ipa
